@@ -160,7 +160,9 @@ const scene = (() => {
     }
     requestAnimationFrame(frame);
   }
-  if (!reduceMotion) frame();
+  // на телефонах сцена статична: прив'язка до скролу смикається, коли ховається панель браузера
+  const desktop = matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)').matches;
+  if (!reduceMotion && desktop) frame();
 })();
 
 /* ---------------------------------------------------------
@@ -321,9 +323,11 @@ onScroll();
       svg.querySelectorAll('.b.active').forEach(b => b.classList.remove('active'));
       g.classList.add('active');
       const fr = frame.getBoundingClientRect(), br = g.getBoundingClientRect();
-      tip.style.left = `${br.left - fr.left + br.width / 2}px`;
-      tip.style.top = `${br.top - fr.top}px`;
       tip.innerHTML = `<b>${h.title} · 7 поверхів</b>${h.info}`;
+      // підказка не виходить за межі карти (інакше на телефоні сторінка їде вбік)
+      const half = tip.offsetWidth / 2, x = br.left - fr.left + br.width / 2;
+      tip.style.left = `${Math.min(Math.max(x, half), fr.width - half)}px`;
+      tip.style.top = `${br.top - fr.top}px`;
       tip.classList.add('on');
     };
     const hide = () => { g.classList.remove('active'); tip.classList.remove('on'); };
