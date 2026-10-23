@@ -23,7 +23,6 @@ function seeded(seed) {
 const nav = document.getElementById('nav');
 const burger = document.getElementById('burger');
 const mobileMenu = document.getElementById('mobileMenu');
-const mobileCta = document.getElementById('mobileCta');
 
 function setMenu(open) {
   document.body.classList.toggle('menu-open', open);
@@ -166,13 +165,10 @@ const scene = (() => {
 })();
 
 /* ---------------------------------------------------------
-   Стан навігації і мобільної кнопки при скролі
+   Стан навігації при скролі
    --------------------------------------------------------- */
 function onScroll() {
   nav.classList.toggle('scrolled', scrollY > 40);
-  // поруч із формою запису плаваюча кнопка не потрібна
-  const formNear = document.getElementById('visit').getBoundingClientRect().top < innerHeight * .9;
-  mobileCta.classList.toggle('on', scrollY > innerHeight * .8 && !formNear);
 }
 addEventListener('scroll', onScroll, { passive: true });
 onScroll();
