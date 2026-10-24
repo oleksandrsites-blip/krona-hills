@@ -18,6 +18,24 @@ function seeded(seed) {
 }
 
 /* ---------------------------------------------------------
+   Плівкове зерно: одна готова картинка 128×128, яку браузер лише повторює
+   (SVG-фільтр на весь екран перераховувався під час скролу і гальмував сайт)
+   --------------------------------------------------------- */
+(() => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  const img = ctx.createImageData(128, 128);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = Math.random() * 255;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  document.documentElement.style.setProperty('--grain', `url(${c.toDataURL('image/png')})`);
+})();
+
+/* ---------------------------------------------------------
    Навігація і мобільне меню
    --------------------------------------------------------- */
 const nav = document.getElementById('nav');
@@ -76,10 +94,20 @@ const scene = (() => {
   const layers = [];
   const windows = [];
 
+  // кожен пагорб — окремий шар-картинка: при паралаксі браузер лише зсуває готові шари,
+  // а не перемальовує всю сцену на кожному кадрі
+  const hero = svg.parentElement;
+  const content = document.getElementById('heroContent');
+  const newLayer = d => {
+    const layer = svgEl('svg', { class: 'scene-layer', viewBox: `0 0 ${W} 900`, preserveAspectRatio: 'xMidYMax slice', 'aria-hidden': 'true' });
+    hero.insertBefore(layer, content);
+    layer.depth = d;
+    layers.push(layer);
+    return layer;
+  };
+
   for (let L = 0; L < 4; L++) {
-    const g = svgEl('g', {}, svg);
-    g.depth = depth[L];
-    layers.push(g);
+    const g = newLayer(depth[L]);
 
     // будинки стоять за третім пагорбом, між соснами
     if (L === 2) {
@@ -118,7 +146,7 @@ const scene = (() => {
   const fog = svgEl('linearGradient', { id: 'fog', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
   svgEl('stop', { offset: 0, 'stop-color': '#0D100E', 'stop-opacity': 0 }, fog);
   svgEl('stop', { offset: 1, 'stop-color': '#0D100E', 'stop-opacity': 1 }, fog);
-  svgEl('rect', { y: 680, width: W, height: 220, fill: 'url(#fog)' }, svg);
+  svgEl('rect', { y: 680, width: W, height: 220, fill: 'url(#fog)' }, layers[3]);
 
   // вечір настає: вікна вмикаються по одному
   const lit = windows.filter(() => rand() < .3);
@@ -126,7 +154,10 @@ const scene = (() => {
     setTimeout(() => w.setAttribute('opacity', .9), reduceMotion ? 0 : 900 + i * 55);
   });
   if (!reduceMotion) {
+    let heroOn = true;
+    new IntersectionObserver(([e]) => { heroOn = e.isIntersecting; }).observe(hero);
     setInterval(() => {
+      if (!heroOn || document.hidden) return;
       const w = windows[Math.floor(rand() * windows.length)];
       w.setAttribute('opacity', w.getAttribute('opacity') > 0 ? 0 : .9);
     }, 900);
@@ -136,8 +167,8 @@ const scene = (() => {
   const front = document.getElementById('sceneFront');
   const frontRidge = x => 792 - 46 * (.6 * Math.sin(x * .0019 + .8) + .3 * Math.sin(x * .0051 + 2.1) + .1 * Math.sin(x * .012));
   const fg = svgEl('g', {}, front);
-  fg.depth = 1;
-  layers.push(fg);
+  front.depth = 1;
+  layers.push(front);
   let fd = 'M-120 900';
   for (let x = -120; x <= W + 120; x += 16) fd += `L${x} ${frontRidge(x).toFixed(1)}`;
   let fp = '';
@@ -159,7 +190,7 @@ const scene = (() => {
   const content = document.getElementById('heroContent');
   const hill = document.getElementById('heroFront');
   const meta = hero.querySelector('.hero-meta');
-  let targetX = 0, x = 0, heroVisible = true;
+  let targetX = 0, x = 0, heroVisible = true, lastX = null, lastY = null;
   const cssSink = CSS.supports('animation-timeline: scroll()');
 
   new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; }).observe(hero);
@@ -169,15 +200,19 @@ const scene = (() => {
     if (heroVisible) {
       const y = scrollY;
       x += (targetX - x) * .05;
-      scene.layers.forEach(g => {
-        // дальні шари відстають при скролі — виникає глибина
-        g.setAttribute('transform', `translate(${(-x * 60 * g.depth).toFixed(2)} ${(y * (1 - g.depth) * .45).toFixed(2)})`);
-      });
-      // запасний варіант для браузерів без анімації від скролу: текст опускається за пагорб
-      if (!cssSink) {
-        content.style.transform = `translateY(${y * .6}px)`;
-        hill.style.transform = `translateY(${-y * .45}px)`;
-        meta.style.opacity = Math.max(0, 1 - y / (innerHeight * .22));
+      if (Math.abs(targetX - x) < .0005) x = targetX;
+      if (x !== lastX || y !== lastY) {
+        lastX = x; lastY = y;
+        scene.layers.forEach(layer => {
+          // дальні шари відстають при скролі — виникає глибина
+          layer.style.transform = `translate3d(${(-x * 54 * layer.depth).toFixed(1)}px, ${(y * (1 - layer.depth) * .4).toFixed(1)}px, 0)`;
+        });
+        // запасний варіант для браузерів без анімації від скролу: текст опускається за пагорб
+        if (!cssSink) {
+          content.style.transform = `translateY(${y * .6}px)`;
+          hill.style.transform = `translateY(${-y * .45}px)`;
+          meta.style.opacity = Math.max(0, 1 - y / (innerHeight * .22));
+        }
       }
     }
     requestAnimationFrame(frame);
@@ -214,8 +249,10 @@ onScroll();
     const n = Math.round(Math.min(1, Math.max(0, p)) * words.length);
     words.forEach((w, i) => w.classList.toggle('on', i < n));
   }
+  let queued = false;
+  const onScroll = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; update(); }); } };
   if (reduceMotion) words.forEach(w => w.classList.add('on'));
-  else { addEventListener('scroll', update, { passive: true }); update(); }
+  else { addEventListener('scroll', onScroll, { passive: true }); update(); }
 })();
 
 /* ---------------------------------------------------------
@@ -321,14 +358,16 @@ onScroll();
     fill: 'none', stroke: 'rgba(230,223,210,.18)', 'stroke-dasharray': '2 4',
   }, svg);
 
-  const treeGroup = svgEl('g', {}, svg);
+  // сосни — окремим шаром під картою: проявляється цілком (одна легка анімація
+  // замість 1284 окремих, які змушували перемальовувати карту на кожному кадрі)
+  const treeLayer = svgEl('svg', { class: 'map-trees', viewBox: '0 0 640 560', 'aria-hidden': 'true' });
+  frame.insertBefore(treeLayer, svg);
   trees.forEach(([x, y, moved]) => {
-    const delay = ((x + y) / 1200 * 1.4).toFixed(2) + 's';
-    const c = moved
-      ? svgEl('circle', { class: 't', cx: x.toFixed(1), cy: y.toFixed(1), r: 2.6, fill: 'none', stroke: '#D2B57C', 'stroke-width': .9 }, treeGroup)
-      : svgEl('circle', { class: 't', cx: x.toFixed(1), cy: y.toFixed(1), r: (1.6 + rand() * 1.5).toFixed(2), fill: '#E6DFD2' }, treeGroup);
-    c.style.setProperty('--o', moved ? 1 : (.35 + rand() * .5).toFixed(2));
-    c.style.transitionDelay = delay;
+    if (moved) svgEl('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: 2.6, fill: 'none', stroke: '#D2B57C', 'stroke-width': .9 }, treeLayer);
+    else {
+      const c = svgEl('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: (1.6 + rand() * 1.5).toFixed(2), fill: '#E6DFD2' }, treeLayer);
+      c.setAttribute('opacity', (.35 + rand() * .5).toFixed(2));
+    }
   });
 
   // будинки
@@ -368,7 +407,7 @@ onScroll();
 
   // показ карти, коли вона з'являється на екрані
   const io = new IntersectionObserver(([e]) => {
-    if (e.isIntersecting) { svg.classList.add('show'); io.disconnect(); }
+    if (e.isIntersecting) { svg.classList.add('show'); frame.classList.add('show'); io.disconnect(); }
   }, { rootMargin: '0px 0px -25% 0px' });
   io.observe(svg);
 })();
@@ -917,4 +956,16 @@ function planSVG(key, area, withLabels) {
     clearTimeout(timer);
     timer = setTimeout(() => toast.classList.remove('on'), 2600);
   }));
+})();
+
+/* ---------------------------------------------------------
+   Нескінченні анімації — на паузу, коли їх не видно
+   --------------------------------------------------------- */
+(() => {
+  const io = new IntersectionObserver(entries => entries.forEach(e => {
+    e.target.classList.toggle('paused', !e.isIntersecting);
+    // рух у дворі (машина, люди) — SVG-анімація, її зупиняємо окремо
+    if (e.target.pauseAnimations) e.isIntersecting ? e.target.unpauseAnimations() : e.target.pauseAnimations();
+  }));
+  ['locMap', 'prBuilding', 'courtyard'].forEach(id => { const el = document.getElementById(id); if (el) io.observe(el); });
 })();
