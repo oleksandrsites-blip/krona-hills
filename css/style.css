@@ -46,15 +46,6 @@ img, svg { display: block; max-width: 100%; }
 :focus-visible { outline: 1px solid var(--gold); outline-offset: 3px; }
 .input input:focus-visible { outline: none; }
 
-/* плівкове зерно поверх усього */
-body::after {
-  content: '';
-  position: fixed; inset: 0;
-  pointer-events: none; z-index: 100;
-  opacity: .05;
-  background-image: var(--grain);
-  transform: translateZ(0);
-}
 
 main > section[id] { scroll-margin-top: 24px; }
 .forest-grid, .loc-grid, .terms-grid, .pr-grid, .faq-grid, .visit-grid { grid-template-columns: minmax(0, 1fr); }
@@ -167,12 +158,14 @@ main > section[id] { scroll-margin-top: 24px; }
   isolation: isolate;
 }
 .hero-scene, .scene-layer { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+/* шари, що зсуваються за мишею, ширші за екран — щоб у кадрі ніколи не з'являвся їхній край */
+.scene-layer, .hero-front svg { left: -60px; right: -60px; width: calc(100% + 120px); max-width: none; }
 @media (hover: hover) and (pointer: fine) and (min-width: 900px) {
   .scene-layer, .hero-front svg { will-change: transform; }
 }
 /* передній пагорб: при скролі виростає і ховає текст; знизу продовжується кольором наступного блоку */
 .hero-front { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.hero-front svg { width: 100%; height: 100%; }
+.hero-front svg { position: absolute; top: 0; height: 100%; }
 .hero-front::after { content: ''; position: absolute; left: 0; right: 0; top: calc(100% - 1px); height: 70vh; background: var(--bg); }
 
 .hero-content {
@@ -1136,7 +1129,6 @@ input[type="range"]:focus-visible { outline: 1px solid var(--gold); outline-offs
    Телефони: прибираємо важкі ефекти, щоб скрол був плавним
    ========================================================= */
 @media (max-width: 899px), (hover: none) {
-  body::after { display: none; }
   .nav.scrolled { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
   .mobile-menu { padding-top: calc(100px + var(--safe-t)); padding-bottom: calc(32px + var(--safe-b)); }
 }

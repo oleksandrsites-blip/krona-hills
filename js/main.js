@@ -18,24 +18,6 @@ function seeded(seed) {
 }
 
 /* ---------------------------------------------------------
-   Плівкове зерно: одна готова картинка 128×128, яку браузер лише повторює
-   (SVG-фільтр на весь екран перераховувався під час скролу і гальмував сайт)
-   --------------------------------------------------------- */
-(() => {
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
-  const ctx = c.getContext('2d');
-  const img = ctx.createImageData(128, 128);
-  for (let i = 0; i < img.data.length; i += 4) {
-    const v = Math.random() * 255;
-    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
-    img.data[i + 3] = 255;
-  }
-  ctx.putImageData(img, 0, 0);
-  document.documentElement.style.setProperty('--grain', `url(${c.toDataURL('image/png')})`);
-})();
-
-/* ---------------------------------------------------------
    Навігація і мобільне меню
    --------------------------------------------------------- */
 const nav = document.getElementById('nav');
