@@ -132,6 +132,22 @@ const scene = (() => {
     }, 900);
   }
 
+  // найближчий пагорб — окремим шаром над текстом: при скролі текст ховається за нього
+  const front = document.getElementById('sceneFront');
+  const frontRidge = x => 792 - 46 * (.6 * Math.sin(x * .0019 + .8) + .3 * Math.sin(x * .0051 + 2.1) + .1 * Math.sin(x * .012));
+  const fg = svgEl('g', {}, front);
+  fg.depth = 1;
+  layers.push(fg);
+  let fd = 'M-120 900';
+  for (let x = -120; x <= W + 120; x += 16) fd += `L${x} ${frontRidge(x).toFixed(1)}`;
+  let fp = '';
+  for (let k = 0; k < 22; k++) {
+    const x = rand() * (W + 240) - 120;
+    fp += pine(x, frontRidge(x) + 8, 34 + rand() * 40);
+  }
+  svgEl('path', { d: fd + `L${W + 120} 900Z`, fill: '#0D100E' }, fg);
+  svgEl('path', { d: fp, fill: '#0D100E' }, fg);
+
   return { layers };
 })();
 
@@ -141,7 +157,10 @@ const scene = (() => {
 (() => {
   const hero = document.getElementById('top');
   const content = document.getElementById('heroContent');
+  const hill = document.getElementById('heroFront');
+  const meta = hero.querySelector('.hero-meta');
   let targetX = 0, x = 0, heroVisible = true;
+  const cssSink = CSS.supports('animation-timeline: scroll()');
 
   new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; }).observe(hero);
   hero.addEventListener('mousemove', e => { targetX = e.clientX / innerWidth - .5; });
@@ -154,8 +173,12 @@ const scene = (() => {
         // дальні шари відстають при скролі — виникає глибина
         g.setAttribute('transform', `translate(${(-x * 60 * g.depth).toFixed(2)} ${(y * (1 - g.depth) * .45).toFixed(2)})`);
       });
-      content.style.transform = `translateY(${y * .3}px)`;
-      content.style.opacity = Math.max(0, 1 - y / (innerHeight * .6));
+      // запасний варіант для браузерів без анімації від скролу: текст опускається за пагорб
+      if (!cssSink) {
+        content.style.transform = `translateY(${y * .6}px)`;
+        hill.style.transform = `translateY(${-y * .45}px)`;
+        meta.style.opacity = Math.max(0, 1 - y / (innerHeight * .22));
+      }
     }
     requestAnimationFrame(frame);
   }

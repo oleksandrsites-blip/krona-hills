@@ -158,6 +158,8 @@ main > section[id] { scroll-margin-top: 24px; }
    1. Перший екран
    ========================================================= */
 .hero {
+  /* наскільки текст опускається і гора виростає за перший екран скролу */
+  --sink: 60vh; --rise: -45vh;
   position: relative;
   min-height: 100vh; min-height: 100svh;
   display: flex; flex-direction: column;
@@ -165,6 +167,10 @@ main > section[id] { scroll-margin-top: 24px; }
   isolation: isolate;
 }
 .hero-scene { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+/* передній пагорб: при скролі виростає і ховає текст; знизу продовжується кольором наступного блоку */
+.hero-front { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.hero-front svg { width: 100%; height: 100%; }
+.hero-front::after { content: ''; position: absolute; left: 0; right: 0; top: calc(100% - 1px); height: 70vh; background: var(--bg); }
 
 .hero-content {
   position: relative;
@@ -207,6 +213,7 @@ main > section[id] { scroll-margin-top: 24px; }
 .hero-ctas .btn { width: 100%; max-width: 320px; }
 
 .hero-meta {
+  position: relative; z-index: 2;
   margin-top: auto;
   padding: 0 var(--edge) calc(20px + var(--safe-b));
   display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
@@ -229,6 +236,7 @@ main > section[id] { scroll-margin-top: 24px; }
   animation: cue 2.2s var(--ease) infinite;
 }
 
+@media (max-width: 899px) { .hero { --sink: 52vh; --rise: -30vh; } }
 @media (min-width: 640px) {
   .hero-ctas { flex-direction: row; justify-content: center; }
   .hero-ctas .btn { width: auto; }
@@ -240,6 +248,22 @@ main > section[id] { scroll-margin-top: 24px; }
   .hero-meta { padding-bottom: 32px; font-size: 11px; }
   .scroll-cue { display: block; }
 }
+
+/* при скролі текст плавно опускається за передній пагорб (браузер рахує сам — без смикання) */
+@supports (animation-timeline: scroll()) {
+  .hero-content, .hero-front {
+    animation: heroSink linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 100vh;
+  }
+  .hero-front { animation-name: hillRise; }
+  @keyframes heroSink { to { transform: translateY(var(--sink)); } }
+  @keyframes hillRise { to { transform: translateY(var(--rise)); } }
+  /* нижній рядок згасає на старті скролу, щоб не висів над горою */
+  .hero-meta > * { animation: metaOut linear both; animation-timeline: scroll(root block); animation-range: 0 22vh; }
+  @keyframes metaOut { to { opacity: 0; } }
+}
+@media (prefers-reduced-motion: reduce) { .hero-content, .hero-front, .hero-meta > * { animation: none !important; transform: none !important; } }
 
 /* загальна поява */
 .reveal { opacity: 0; transform: translateY(16px); animation: fadeUp 1.1s var(--ease) forwards; animation-delay: var(--d, 0s); }
