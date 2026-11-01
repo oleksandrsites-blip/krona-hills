@@ -247,7 +247,7 @@ onScroll();
     io.unobserve(e.target);
     const end = +e.target.dataset.count, start = performance.now(), dur = reduceMotion ? 1 : 1800;
     (function tick(now) {
-      const t = Math.min(1, (now - start) / dur);
+      const t = Math.max(0, Math.min(1, (now - start) / dur));
       e.target.textContent = fmt(Math.round(end * (1 - Math.pow(1 - t, 4))));
       if (t < 1) requestAnimationFrame(tick);
     })(start);
