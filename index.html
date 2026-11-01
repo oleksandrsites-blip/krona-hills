@@ -298,9 +298,21 @@
             <button type="button" data-rooms="3" aria-pressed="false">3 кімн.</button>
             <button type="button" data-rooms="4" aria-pressed="false">4 кімн.</button>
           </div>
-          <button type="button" class="chip" id="forestOnly" aria-pressed="false">
-            <i aria-hidden="true"></i>Тільки з видом на ліс
-          </button>
+          <div class="filters-right">
+            <button type="button" class="chip" id="forestOnly" aria-pressed="false">
+              <i aria-hidden="true"></i>Тільки з видом на ліс
+            </button>
+            <label class="sort">
+              <span class="visually-hidden">Сортування</span>
+              <select id="flatSort">
+                <option value="">Сортування</option>
+                <option value="price-asc">Спершу дешевші</option>
+                <option value="price-desc">Спершу дорожчі</option>
+                <option value="area-asc">Спершу менші</option>
+                <option value="area-desc">Спершу більші</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         <div class="flats-grid" id="flatsGrid" aria-live="polite"></div>
@@ -526,6 +538,7 @@
 
           <div class="visit-card">
             <form class="visit-form" id="visitForm" novalidate>
+              <input type="hidden" name="apartment" id="vfApt">
               <div class="vf-flat" id="vfFlat" hidden>
                 <span>Квартира: <b id="vfFlatText"></b></span>
                 <button type="button" id="vfFlatClear" aria-label="Прибрати квартиру">

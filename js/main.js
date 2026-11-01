@@ -501,12 +501,16 @@ onScroll();
 })();
 
 /* ---------------------------------------------------------
-   5. Квартири: дані, плани, фільтр, вікно квартири
+   5. Квартири: дані, плани, фільтр, сортування, вікно квартири
    --------------------------------------------------------- */
-const money = n => Math.round(n).toLocaleString('uk-UA') + ' грн';
-const millions = n => (n / 1e6).toLocaleString('uk-UA', { maximumFractionDigits: 2 }) + ' млн грн';
+const NUM = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 0 });
+const NUM1 = new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const MLN = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2 });
+const money = n => NUM.format(Math.round(n)) + ' грн';
+const millions = n => MLN.format(n / 1e6) + ' млн грн';
+const m2 = n => NUM1.format(n) + ' м²';
 
-// Кімнати у відносних одиницях: [x, y, ширина, висота, назва]
+// Кімнати у відносних одиницях: [x, y, ширина, висота, назва]; extra — балкон або тераса
 const PLANS = {
   k1:  { rooms: [[0, 0, 58, 40, 'Кухня-вітальня'], [58, 0, 42, 40, 'Спальня'], [0, 40, 36, 26, 'Передпокій'], [36, 40, 24, 26, 'Ванна'], [60, 40, 40, 26, 'Гардероб']], extra: [8, -10, 40, 10, 'Балкон'] },
   k1b: { rooms: [[0, 0, 62, 42, 'Кухня-вітальня'], [62, 0, 38, 42, 'Спальня'], [0, 42, 40, 28, 'Передпокій'], [40, 42, 26, 28, 'Ванна'], [66, 42, 34, 28, 'Гардероб']] },
@@ -516,40 +520,57 @@ const PLANS = {
   k4:  { rooms: [[0, 0, 44, 40, 'Кухня-вітальня'], [44, 0, 26, 40, 'Спальня'], [70, 0, 26, 40, 'Спальня'], [96, 0, 26, 40, 'Кабінет'], [0, 40, 34, 28, 'Передпокій'], [34, 40, 34, 28, 'Дитяча'], [68, 40, 28, 28, 'Ванна'], [96, 40, 26, 28, 'Гардероб']], extra: [0, -20, 122, 20, 'Тераса'] },
 };
 
+// id — для посилання на конкретну квартиру: ?apt=2k-64
+// outdoor — площа балкона чи тераси (не входить у загальну площу)
 const FLATS = [
-  { rooms: 1, area: 42,  price: 1890000, plan: 'k1',  house: 1, floors: '2–7', view: 'ліс',  tags: ['Балкон'], left: 6 },
-  { rooms: 1, area: 48,  price: 2150000, plan: 'k1b', house: 2, floors: '1–7', view: 'двір', tags: ['Гардероб'], left: 9 },
-  { rooms: 2, area: 58,  price: 2610000, plan: 'k2',  house: 1, floors: '2–7', view: 'ліс',  tags: ['Балкон'], left: 4 },
-  { rooms: 2, area: 64,  price: 2880000, plan: 'k2',  house: 3, floors: '1–7', view: 'ліс',  tags: ['Балкон', 'Гардероб'], left: 11 },
-  { rooms: 2, area: 71,  price: 3190000, plan: 'k2b', house: 4, floors: '1–7', view: 'двір', tags: ['Дві ванні'], left: 8 },
-  { rooms: 3, area: 86,  price: 3870000, plan: 'k3',  house: 2, floors: '2–7', view: 'ліс',  tags: ['Балкон', 'Гардероб'], left: 3 },
-  { rooms: 3, area: 94,  price: 4230000, plan: 'k3',  house: 4, floors: '2–7', view: 'ліс',  tags: ['Гардероб', 'Дитяча'], left: 5 },
-  { rooms: 4, area: 118, price: 5430000, plan: 'k4',  house: 1, floors: '7',   view: 'ліс',  tags: ['Тераса 32 м²', 'Кабінет'], left: 2 },
+  { id: '1k-42',  rooms: 1, area: 42,  price: 1890000, plan: 'k1',  house: 1, floor: '3 з 7', view: 'ліс',  outdoor: 3.2, tags: ['Балкон'], left: 6 },
+  { id: '1k-48',  rooms: 1, area: 48,  price: 2150000, plan: 'k1b', house: 2, floor: '2 з 7', view: 'двір', outdoor: 0,   tags: ['Гардероб'], left: 9 },
+  { id: '2k-58',  rooms: 2, area: 58,  price: 2610000, plan: 'k2',  house: 1, floor: '4 з 7', view: 'ліс',  outdoor: 3.6, tags: ['Балкон'], left: 4 },
+  { id: '2k-64',  rooms: 2, area: 64,  price: 2880000, plan: 'k2',  house: 3, floor: '5 з 7', view: 'ліс',  outdoor: 3.8, tags: ['Балкон', 'Гардероб'], left: 11 },
+  { id: '2k-71',  rooms: 2, area: 71,  price: 3190000, plan: 'k2b', house: 4, floor: '2 з 7', view: 'двір', outdoor: 0,   tags: ['Дві ванні'], left: 8 },
+  { id: '3k-86',  rooms: 3, area: 86,  price: 3870000, plan: 'k3',  house: 2, floor: '6 з 7', view: 'ліс',  outdoor: 3.4, tags: ['Балкон', 'Гардероб'], left: 3 },
+  { id: '3k-94',  rooms: 3, area: 94,  price: 4230000, plan: 'k3',  house: 4, floor: '4 з 7', view: 'ліс',  outdoor: 3.6, tags: ['Гардероб', 'Дитяча'], left: 5 },
+  { id: '4k-118', rooms: 4, area: 118, price: 5430000, plan: 'k4',  house: 1, floor: '7 з 7', view: 'ліс',  outdoor: 32,  tags: ['Тераса 32 м²', 'Кабінет'], left: 2 },
 ];
 
 const roomsWord = n => n === 1 ? 'кімната' : n < 5 ? 'кімнати' : 'кімнат';
+const flatLabel = f => `${f.rooms} ${roomsWord(f.rooms)}, ${f.area} м², будинок ${f.house}`;
 
-function planSVG(key, area, withLabels) {
-  const { rooms, extra } = PLANS[key];
+// Площі кімнат: пропорційно до плану, округлені до 0,1 м² так, щоб сума точно дорівнювала загальній площі
+function roomAreas(f) {
+  const { rooms, extra } = PLANS[f.plan];
+  const total = rooms.reduce((s, r) => s + r[2] * r[3], 0);
+  const tenths = rooms.map(r => f.area * 10 * r[2] * r[3] / total);
+  const rounded = tenths.map(Math.floor);
+  let rest = Math.round(f.area * 10) - rounded.reduce((a, b) => a + b, 0);
+  tenths.map((t, i) => [t - Math.floor(t), i]).sort((a, b) => b[0] - a[0])
+    .forEach(([, i]) => { if (rest-- > 0) rounded[i]++; });
+  const list = rooms.map((r, i) => ({ name: r[4], area: rounded[i] / 10 }));
+  if (extra && f.outdoor) list.push({ name: extra[4], area: f.outdoor, outdoor: true });
+  return list;
+}
+
+function planSVG(f, withLabels) {
+  const { rooms, extra } = PLANS[f.plan];
+  const areas = roomAreas(f);
   const W = Math.max(...rooms.map(r => r[0] + r[2]));
   const H = Math.max(...rooms.map(r => r[1] + r[3]));
   const top = extra ? extra[1] : 0;
-  const total = rooms.reduce((s, r) => s + r[2] * r[3], 0);
-  let out = `<svg class="plan" viewBox="-4 ${top - 4} ${W + 8} ${H - top + 8}" aria-hidden="true">`;
+  const label = withLabels ? `role="img" aria-label="План квартири: ${areas.map(a => `${a.name} ${m2(a.area)}`).join(', ')}"` : 'aria-hidden="true"';
+  let out = `<svg class="plan" viewBox="-4 ${top - 4} ${W + 8} ${H - top + 8}" ${label}>`;
 
   if (extra) {
     const [x, y, w, h, name] = extra;
     out += `<rect class="balc" x="${x}" y="${y}" width="${w}" height="${h}"/>`;
-    if (withLabels) out += `<text x="${x + w / 2}" y="${y + h / 2 + 1}" font-size="2.6" text-anchor="middle">${name}</text>`;
+    if (withLabels) out += `<text x="${x + w / 2}" y="${y + h / 2 + 1}" font-size="2.6" text-anchor="middle">${name}${f.outdoor ? ' · ' + m2(f.outdoor) : ''}</text>`;
   }
   rooms.forEach(([x, y, w, h, name], i) => {
     out += `<rect class="room${i === 0 ? ' living' : ''}" x="${x}" y="${y}" width="${w}" height="${h}"/>`;
     if (y === 0) out += `<line class="wnd" x1="${x + w * .25}" y1="0" x2="${x + w * .75}" y2="0"/>`;
     if (withLabels) {
       const fs = Math.min(2.8, w / 7);
-      const m2 = (area * (w * h) / total).toFixed(1).replace('.', ',');
       out += `<text x="${x + w / 2}" y="${y + h / 2 - 1}" font-size="${fs}" text-anchor="middle">${name}</text>`;
-      out += `<text class="area" x="${x + w / 2}" y="${y + h / 2 + fs + .6}" font-size="${fs * 1.15}" text-anchor="middle">${m2} м²</text>`;
+      out += `<text class="area" x="${x + w / 2}" y="${y + h / 2 + fs + .6}" font-size="${fs * 1.15}" text-anchor="middle">${m2(areas[i].area)}</text>`;
     }
   });
   out += `<rect class="outer" x="0" y="0" width="${W}" height="${H}"/></svg>`;
@@ -560,9 +581,10 @@ function planSVG(key, area, withLabels) {
   const grid = document.getElementById('flatsGrid');
   const tabs = document.querySelectorAll('#roomTabs button');
   const forestBtn = document.getElementById('forestOnly');
+  const sortSel = document.getElementById('flatSort');
   const modal = document.getElementById('flatModal');
   const body = document.getElementById('flatModalBody');
-  let rooms = 'all', forestOnly = false;
+  let rooms = 'all', forestOnly = false, sort = '';
 
   // кількість планувань біля кожної вкладки
   tabs.forEach(b => {
@@ -570,12 +592,20 @@ function planSVG(key, area, withLabels) {
     b.insertAdjacentHTML('beforeend', `<sup>${n}</sup>`);
   });
 
+  const SORTS = {
+    'price-asc': (a, b) => a.price - b.price,
+    'price-desc': (a, b) => b.price - a.price,
+    'area-asc': (a, b) => a.area - b.area,
+    'area-desc': (a, b) => b.area - a.area,
+  };
+
   function render() {
     const list = FLATS.filter(f => (rooms === 'all' || f.rooms === +rooms) && (!forestOnly || f.view === 'ліс'));
+    if (SORTS[sort]) list.sort(SORTS[sort]);
     grid.innerHTML = list.length ? list.map((f, i) => `
-      <button type="button" class="flat" data-i="${FLATS.indexOf(f)}" style="animation-delay:${i * 50}ms">
+      <button type="button" class="flat" data-id="${f.id}" style="animation-delay:${i * 50}ms" aria-label="${flatLabel(f)}, від ${millions(f.price)} — відкрити планування">
         ${f.left <= 5 ? `<span class="flat-left">Лишилось ${f.left}</span>` : ''}
-        <span class="flat-plan">${planSVG(f.plan, f.area, false)}</span>
+        <span class="flat-plan">${planSVG(f, false)}</span>
         <span class="flat-rooms">${f.rooms} ${roomsWord(f.rooms)} · вид на ${f.view}</span>
         <span class="flat-area">${f.area} <small>м²</small></span>
         <span class="flat-price">від ${millions(f.price)}</span>
@@ -594,43 +624,78 @@ function planSVG(key, area, withLabels) {
     forestBtn.setAttribute('aria-pressed', forestOnly);
     render();
   });
+  sortSel.addEventListener('change', () => { sort = sortSel.value; render(); });
+
+  // посилання на квартиру: ?apt=2k-64 (решта параметрів зберігається)
+  const setAptParam = id => {
+    const url = new URL(location.href);
+    if (id) url.searchParams.set('apt', id); else url.searchParams.delete('apt');
+    history.replaceState(null, '', url);
+  };
 
   function open(f) {
     const monthly = f.price * .7 / 14;
+    const areas = roomAreas(f);
     body.innerHTML = `
       <button type="button" class="fm-close" aria-label="Закрити" data-close>
         <svg width="14" height="14" viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1 1l12 12M13 1 1 13"/></svg>
       </button>
-      <div class="fm-plan">${planSVG(f.plan, f.area, true)}</div>
-      <div>
-        <p class="label label-gold">Будинок ${f.house} · вид на ${f.view}</p>
+      <div class="fm-plan">${planSVG(f, true)}</div>
+      <div class="fm-info">
+        <p class="label label-gold">Будинок ${f.house} · вид на ${f.view}${f.left <= 5 ? ` · <span class="fm-left">лишилось ${f.left}</span>` : ''}</p>
         <h3 class="fm-title" id="flatTitle">${f.rooms} ${roomsWord(f.rooms)}, ${f.area} м²</h3>
         <ul class="fm-specs">
-          <li><span>Поверхи</span><span>${f.floors}</span></li>
-          <li><span>Кухня-вітальня</span><span>${(f.area * PLANS[f.plan].rooms[0][2] * PLANS[f.plan].rooms[0][3] / PLANS[f.plan].rooms.reduce((s, r) => s + r[2] * r[3], 0)).toFixed(1).replace('.', ',')} м²</span></li>
-          <li><span>Особливості</span><span>${f.tags.join(', ')}</span></li>
+          <li><span>Поверх</span><span>${f.floor}</span></li>
+          <li><span>Вид з вікон</span><span>${f.view === 'ліс' ? 'на сосновий ліс' : 'у двір без машин'}</span></li>
+          <li><span>Ціна за м²</span><span>${money(f.price / f.area)}</span></li>
           <li><span>Здача</span><span>${f.house <= 2 ? 'грудень 2027' : 'вересень 2028'}</span></li>
         </ul>
+        <details class="fm-expl" open>
+          <summary>Експлікація площ</summary>
+          <ul>${areas.map(a => `<li${a.outdoor ? ' class="out"' : ''}><span>${a.name}</span><span>${m2(a.area)}</span></li>`).join('')}
+            <li class="sum"><span>Загальна площа</span><span>${m2(f.area)}</span></li>
+          </ul>
+        </details>
         <p class="fm-price">${money(f.price)}</p>
         <p class="fm-monthly">У розстрочку: 30% внесок, далі <b>${money(monthly)}/міс</b></p>
         <div class="fm-actions">
-          <a class="btn btn-gold" href="#visit" data-close data-flat="${f.rooms} ${roomsWord(f.rooms)}, ${f.area} м², будинок ${f.house}">Записатися на огляд</a>
+          <a class="btn btn-gold" href="#visit" data-close data-apt="${f.id}">Записатися на огляд цієї квартири</a>
           <a class="btn btn-ghost" href="#terms" data-calc="${f.price}">Розрахувати платіж</a>
         </div>
+        <button type="button" class="fm-share" data-share="${f.id}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+          Скопіювати посилання на квартиру
+        </button>
       </div>`;
-    modal.showModal();
+    setAptParam(f.id);
+    if (!modal.open) modal.showModal();
+    modal.scrollTop = 0;
   }
 
   grid.addEventListener('click', e => {
     const card = e.target.closest('.flat');
-    if (card) open(FLATS[+card.dataset.i]);
+    if (card) open(FLATS.find(f => f.id === card.dataset.id));
   });
-  modal.addEventListener('click', e => {
+  modal.addEventListener('close', () => setAptParam(null));
+  modal.addEventListener('click', async e => {
     if (e.target === modal || e.target.closest('[data-close]')) modal.close();
-    const flatLink = e.target.closest('[data-flat]');
-    if (flatLink) window.setVisitFlat?.(flatLink.dataset.flat);
+    const aptLink = e.target.closest('[data-apt]');
+    if (aptLink) {
+      const f = FLATS.find(x => x.id === aptLink.dataset.apt);
+      window.setVisitFlat?.(flatLabel(f), f.id);
+    }
     const calcLink = e.target.closest('[data-calc]');
-    if (calcLink) { modal.close(); window.setCalcPrice?.(+calcLink.dataset.calc); }
+    if (calcLink) { e.preventDefault(); modal.close(); window.setCalcPrice?.(+calcLink.dataset.calc); }
+    const share = e.target.closest('[data-share]');
+    if (share) {
+      const url = new URL(location.href);
+      url.hash = '';
+      url.search = `?apt=${share.dataset.share}`;
+      try {
+        if (navigator.share && matchMedia('(hover: none)').matches) await navigator.share({ title: 'Krona Hills', url: url.href });
+        else { await navigator.clipboard.writeText(url.href); window.showToast?.('Посилання на квартиру скопійовано'); }
+      } catch (err) { /* користувач закрив вікно «Поділитися» */ }
+    }
   });
   // свайп вниз закриває вікно на телефоні
   let startY = null;
@@ -641,6 +706,14 @@ function planSVG(key, area, withLabels) {
   });
 
   render();
+
+  // відкриваємо квартиру з посилання
+  const aptParam = new URLSearchParams(location.search).get('apt');
+  const fromLink = FLATS.find(f => f.id === aptParam);
+  if (fromLink) {
+    document.getElementById('flats').scrollIntoView();
+    open(fromLink);
+  }
 })();
 
 /* ---------------------------------------------------------
@@ -918,11 +991,13 @@ function planSVG(key, area, withLabels) {
   });
 
   // квартира з вікна квартири
-  window.setVisitFlat = text => {
+  const aptInput = document.getElementById('vfApt');
+  window.setVisitFlat = (text, id) => {
     flatText.textContent = text;
+    aptInput.value = id ? `${id} · ${text}` : text;
     flatBox.hidden = false;
   };
-  document.getElementById('vfFlatClear').addEventListener('click', () => { flatBox.hidden = true; });
+  document.getElementById('vfFlatClear').addEventListener('click', () => { flatBox.hidden = true; aptInput.value = ''; });
 })();
 
 /* ---------------------------------------------------------
@@ -931,6 +1006,12 @@ function planSVG(key, area, withLabels) {
 (() => {
   const toast = document.getElementById('toast');
   let timer;
+  window.showToast = text => {
+    toast.textContent = text;
+    toast.classList.add('on');
+    clearTimeout(timer);
+    timer = setTimeout(() => toast.classList.remove('on'), 2600);
+  };
   document.querySelectorAll('[data-demo]').forEach(a => a.addEventListener('click', e => {
     e.preventDefault();
     toast.textContent = 'Документи покажемо на огляді або надішлемо в месенджер';
