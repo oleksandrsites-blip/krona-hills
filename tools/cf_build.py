@@ -113,7 +113,7 @@ def build():
         if not src.exists():
             continue
         if src.is_dir():
-            shutil.copytree(src, OUT / item, ignore=shutil.ignore_patterns('_src', '.DS_Store', '*.md'))
+            shutil.copytree(src, OUT / item, ignore=shutil.ignore_patterns('_src', '.DS_Store', '*.md', '.gitkeep'))
         else:
             shutil.copy2(src, OUT / item)
 

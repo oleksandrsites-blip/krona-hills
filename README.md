@@ -51,3 +51,16 @@ python3 tools/cf_build.py --manifest && python3 -m http.server 8000
 ```
 
 Відкрийте http://localhost:8000. Форма заявки локально відповість помилкою — функція `/api/lead` працює лише на Cloudflare.
+
+## Допоміжні скрипти (tools/)
+
+| Скрипт | Що робить |
+|---|---|
+| `cf-build.sh` / `cf_build.py` | збірка для Cloudflare Pages |
+| `images.sh` | нарізка оригіналів з `images/_src/` у AVIF + JPG (і WebP, якщо є `cwebp`) |
+| `fonts.py` | завантажує шрифти з Google Fonts у `fonts/` (self-host) |
+| `make-og.sh` | перегенерує `og/og-cover.png` (1200×630); якщо є рендер — він стає фоном |
+| `make-docs.sh` | перегенерує PDF-зразки документів у `docs/` |
+| `lead-test.html` | перевірка функції `/api/lead` у браузері без Cloudflare |
+
+Для `make-og.sh`, `make-docs.sh` і `lead-test.html` потрібен локальний сервер: `python3 -m http.server 8766`.
