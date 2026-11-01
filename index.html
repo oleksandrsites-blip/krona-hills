@@ -11,6 +11,7 @@
   <meta property="og:locale" content="uk_UA">
   <meta name="theme-color" content="#0D100E">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <!--HERO_PRELOAD-->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;400&family=Onest:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -63,6 +64,7 @@
     <!-- ============ 1. Перший екран ============ -->
     <section class="hero" id="top">
       <svg class="hero-scene" id="scene" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
+      <!--HERO_PICTURE-->
 
       <div class="hero-content" id="heroContent">
         <p class="eyebrow reveal" style="--d:.2s">Новобудова в сосновому лісі<span class="eyebrow-extra"> · 22 хв до центру Києва</span></p>
@@ -258,6 +260,27 @@
       </div>
     </section>
 
+    <!-- ============ 4½. Галерея ============ -->
+    <section class="gallery" id="gallery">
+      <div class="container">
+        <div class="q-head">
+          <h2 class="h2">Як виглядатиме <span class="gold">квартал</span></h2>
+          <p class="lead">Фасади, двір і стежки між соснами — такими будинки стануть після здачі. Натисніть на кадр, щоб роздивитися ближче.</p>
+        </div>
+
+        <div class="g-grid" data-lb="gallery">
+          <button type="button" class="media g-item g1" data-img="gallery/01-fasady" data-cap="Фасади серед сосон" data-alt="Візуалізація: семиповерхові будинки Krona Hills серед сосон удень" style="--ar:3/2"></button>
+          <button type="button" class="media g-item g2" data-img="gallery/02-dvir" data-cap="Двір без машин" data-alt="Візуалізація: двір без машин з доріжками і майданчиками між соснами" style="--ar:4/3"></button>
+          <button type="button" class="media g-item g3" data-img="gallery/03-maidanchyk" data-cap="Дитячий майданчик під соснами" data-alt="Візуалізація: дитячий майданчик у тіні сосон" style="--ar:4/3"></button>
+          <button type="button" class="media g-item g4" data-img="gallery/04-stezhka" data-cap="Освітлена стежка в лісі" data-alt="Візуалізація: освітлена лісова стежка ввечері" style="--ar:3/4"></button>
+          <button type="button" class="media g-item g5" data-img="gallery/05-vkhid" data-cap="Вхідна група й лобі" data-alt="Візуалізація: вхідна група і лобі будинку" style="--ar:3/4"></button>
+          <button type="button" class="media g-item g6" data-img="gallery/06-vechir" data-cap="Вечір у кварталі" data-alt="Візуалізація: будинки ввечері зі світлом у вікнах" style="--ar:3/2"></button>
+          <button type="button" class="media g-item g7" data-img="gallery/07-terasa" data-cap="Тераса пентхауса з видом на ліс" data-alt="Візуалізація: тераса пентхауса з видом на сосновий ліс" style="--ar:3/2"></button>
+          <button type="button" class="media g-item g8" data-img="gallery/08-zyma" data-cap="Квартал узимку" data-alt="Візуалізація: квартал узимку, засніжені сосни" style="--ar:3/4"></button>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ 5. Квартири ============ -->
     <section class="flats" id="flats">
       <div class="container">
@@ -281,6 +304,19 @@
         </div>
 
         <div class="flats-grid" id="flatsGrid" aria-live="polite"></div>
+
+        <div class="interiors">
+          <div class="int-head">
+            <h3>Шоурум: так виглядатиме <span class="gold">ваша квартира</span></h3>
+            <p>Ремонт під ключ від 9 500 грн/м² — три дизайн-проєкти на вибір. Шоурум відкритий на території кварталу.</p>
+          </div>
+          <div class="int-grid" data-lb="interiors">
+            <button type="button" class="media int-item i1" data-img="interiors/01-kukhnia-vitalnia" data-cap="Кухня-вітальня з вікнами в ліс" data-alt="Візуалізація інтер'єру: кухня-вітальня з панорамними вікнами на сосни" style="--ar:3/2"></button>
+            <button type="button" class="media int-item i2" data-img="interiors/02-spalnia" data-cap="Спальня" data-alt="Візуалізація інтер'єру: спальня в теплих тонах" style="--ar:3/2"></button>
+            <button type="button" class="media int-item i3" data-img="interiors/03-vanna" data-cap="Ванна кімната" data-alt="Візуалізація інтер'єру: ванна кімната" style="--ar:4/5"></button>
+            <button type="button" class="media int-item i4" data-img="interiors/04-vyd-z-vikna" data-cap="Вид з вікна на сосни" data-alt="Візуалізація: вид з вікна квартири на сосновий ліс" style="--ar:4/5"></button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -387,6 +423,17 @@
             </ul>
 
           </div>
+        </div>
+
+        <div class="pp" id="progressPhotos">
+          <div class="pp-head">
+            <h3>Фото з майданчика</h3>
+            <div class="pp-tabs" role="tablist" aria-label="Місяць"><button type="button" role="tab" id="ppt-2026-10" aria-controls="pp-2026-10" aria-selected="true" data-m="2026-10">Жовтень 2026</button><button type="button" role="tab" id="ppt-2026-09" aria-controls="pp-2026-09" aria-selected="false" data-m="2026-09">Вересень 2026</button><button type="button" role="tab" id="ppt-2026-08" aria-controls="pp-2026-08" aria-selected="false" data-m="2026-08">Серпень 2026</button><button type="button" role="tab" id="ppt-2026-07" aria-controls="pp-2026-07" aria-selected="false" data-m="2026-07">Липень 2026</button></div>
+          </div>
+          <div class="pp-panel" role="tabpanel" id="pp-2026-10" aria-labelledby="ppt-2026-10" data-lb="progress-2026-10"><button type="button" class="media pp-item" data-img="progress/2026-10/01" data-kind="photo" data-tag="Фото · жовтень 2026" data-cap="Будинок 1 — каркас 6 поверху" data-alt="Фото з будмайданчика, жовтень 2026: Будинок 1 — каркас 6 поверху" style="--ar:4/3"></button><button type="button" class="media pp-item" data-img="progress/2026-10/02" data-kind="photo" data-tag="Фото · жовтень 2026" data-cap="Будинок 3 — підземний паркінг" data-alt="Фото з будмайданчика, жовтень 2026: Будинок 3 — підземний паркінг" style="--ar:4/3"></button></div>
+          <div class="pp-panel" role="tabpanel" id="pp-2026-09" aria-labelledby="ppt-2026-09" data-lb="progress-2026-09" hidden><button type="button" class="media pp-item" data-img="progress/2026-09/01" data-kind="photo" data-tag="Фото · вересень 2026" data-cap="Будинок 1 — 5 поверх" data-alt="Фото з будмайданчика, вересень 2026: Будинок 1 — 5 поверх" style="--ar:4/3"></button><button type="button" class="media pp-item" data-img="progress/2026-09/02" data-kind="photo" data-tag="Фото · вересень 2026" data-cap="Будинок 2 — каркас 4 поверху" data-alt="Фото з будмайданчика, вересень 2026: Будинок 2 — каркас 4 поверху" style="--ar:4/3"></button></div>
+          <div class="pp-panel" role="tabpanel" id="pp-2026-08" aria-labelledby="ppt-2026-08" data-lb="progress-2026-08" hidden><button type="button" class="media pp-item" data-img="progress/2026-08/01" data-kind="photo" data-tag="Фото · серпень 2026" data-cap="Будинок 1 — 4 поверх" data-alt="Фото з будмайданчика, серпень 2026: Будинок 1 — 4 поверх" style="--ar:4/3"></button><button type="button" class="media pp-item" data-img="progress/2026-08/02" data-kind="photo" data-tag="Фото · серпень 2026" data-cap="Будинок 3 — котлован" data-alt="Фото з будмайданчика, серпень 2026: Будинок 3 — котлован" style="--ar:4/3"></button></div>
+          <div class="pp-panel" role="tabpanel" id="pp-2026-07" aria-labelledby="ppt-2026-07" data-lb="progress-2026-07" hidden><button type="button" class="media pp-item" data-img="progress/2026-07/01" data-kind="photo" data-tag="Фото · липень 2026" data-cap="Будинок 2 — 3 поверх" data-alt="Фото з будмайданчика, липень 2026: Будинок 2 — 3 поверх" style="--ar:4/3"></button><button type="button" class="media pp-item" data-img="progress/2026-07/02" data-kind="photo" data-tag="Фото · липень 2026" data-cap="Паркінг першої черги здано" data-alt="Фото з будмайданчика, липень 2026: Паркінг першої черги здано" style="--ar:4/3"></button></div>
         </div>
 
         <ol class="timeline" aria-label="Етапи будівництва">
@@ -551,6 +598,7 @@
           <a href="#forest">Ліс</a>
           <a href="#location">Локація</a>
           <a href="#quarter">Квартал</a>
+          <a href="#gallery">Галерея</a>
           <a href="#flats">Квартири</a>
           <a href="#terms">Умови</a>
           <a href="#progress">Хід робіт</a>
@@ -588,8 +636,26 @@
   </dialog>
 
 
+  <!-- Перегляд зображень на весь екран -->
+  <dialog class="lb" id="lightbox" aria-label="Перегляд зображень">
+    <button type="button" class="lb-close" data-lb-close aria-label="Закрити">
+      <svg width="16" height="16" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 2l12 12M14 2 2 14"/></svg>
+    </button>
+    <button type="button" class="lb-nav lb-prev" data-lb-step="-1" aria-label="Попереднє зображення">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M11 3 5 9l6 6"/></svg>
+    </button>
+    <figure class="lb-fig">
+      <div class="lb-media media" id="lbMedia"></div>
+      <figcaption class="lb-cap"><span id="lbCap"></span><span class="lb-count" id="lbCount"></span></figcaption>
+    </figure>
+    <button type="button" class="lb-nav lb-next" data-lb-step="1" aria-label="Наступне зображення">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m7 3 6 6-6 6"/></svg>
+    </button>
+  </dialog>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="js/images.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

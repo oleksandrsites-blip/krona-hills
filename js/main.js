@@ -80,8 +80,8 @@ const scene = (() => {
   // а не перемальовує всю сцену на кожному кадрі
   const hero = svg.parentElement;
   const content = document.getElementById('heroContent');
-  const newLayer = d => {
-    const layer = svgEl('svg', { class: 'scene-layer', viewBox: `0 0 ${W} 900`, preserveAspectRatio: 'xMidYMax slice', 'aria-hidden': 'true' });
+  const newLayer = (d, i) => {
+    const layer = svgEl('svg', { class: `scene-layer l${i}`, viewBox: `0 0 ${W} 900`, preserveAspectRatio: 'xMidYMax slice', 'aria-hidden': 'true' });
     hero.insertBefore(layer, content);
     layer.depth = d;
     layers.push(layer);
@@ -89,7 +89,7 @@ const scene = (() => {
   };
 
   for (let L = 0; L < 4; L++) {
-    const g = newLayer(depth[L]);
+    const g = newLayer(depth[L], L);
 
     // будинки стоять за третім пагорбом, між соснами
     if (L === 2) {
@@ -950,4 +950,152 @@ function planSVG(key, area, withLabels) {
     if (e.target.pauseAnimations) e.isIntersecting ? e.target.unpauseAnimations() : e.target.pauseAnimations();
   }));
   ['locMap', 'prBuilding', 'courtyard'].forEach(id => { const el = document.getElementById(id); if (el) io.observe(el); });
+})();
+
+/* ---------------------------------------------------------
+   Зображення: вставляємо лише ті, що реально є (js/images.js),
+   на місці решти — заглушка з підписом
+   --------------------------------------------------------- */
+const IMAGES = window.KRONA_IMAGES || {};
+const PH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 6 11h3l-4 6h14l-4-6h3z"/><path d="M12 17v4"/></svg>';
+
+function pictureHTML(key, alt, sizes, eager) {
+  const img = IMAGES[key];
+  if (!img || !img.w.length || !img.f.length) return '';
+  const set = f => img.w.map(w => `images/${key}-${w}.${f} ${w}w`).join(', ');
+  const fallback = img.f[img.f.length - 1];
+  const sources = img.f.slice(0, -1).map(f => `<source type="image/${f}" srcset="${set(f)}" sizes="${sizes}">`).join('');
+  const load = eager ? 'fetchpriority="high"' : 'loading="lazy"';
+  return `<picture>${sources}<img src="images/${key}-${img.w[img.w.length - 1]}.${fallback}" srcset="${set(fallback)}" sizes="${sizes}" alt="${alt}" ${load} decoding="async"></picture>`;
+}
+
+function fillMedia(el, sizes) {
+  const { img: key, alt = '', cap = '', kind } = el.dataset;
+  el.querySelectorAll('picture, .ph').forEach(n => n.remove());
+  const pic = pictureHTML(key, alt, sizes);
+  if (pic) {
+    el.insertAdjacentHTML('afterbegin', pic);
+    const im = el.querySelector('img');
+    const done = () => el.classList.add('is-loaded');
+    if (im.complete && im.naturalWidth) done(); else im.addEventListener('load', done, { once: true });
+  } else {
+    el.classList.remove('is-loaded');
+    el.insertAdjacentHTML('afterbegin', `<span class="ph"><span class="ph-in">${PH_ICON}<b>${cap}</b><small>${kind === 'photo' ? 'Фото з майданчика незабаром' : 'Візуалізація готується'}</small></span></span>`);
+  }
+  return !!pic;
+}
+
+(() => {
+  const SIZES = {
+    gallery: '(min-width: 1100px) 50vw, (min-width: 640px) 50vw, 82vw',
+    interiors: '(min-width: 900px) 50vw, (min-width: 640px) 50vw, 78vw',
+    progress: '(min-width: 640px) 50vw, 100vw',
+  };
+  document.querySelectorAll('[data-lb] .media').forEach(el => {
+    const group = el.closest('[data-lb]').dataset.lb.split('-')[0];
+    fillMedia(el, SIZES[group] || '100vw');
+    el.setAttribute('aria-label', `${el.dataset.cap} — відкрити на весь екран`);
+    el.insertAdjacentHTML('beforeend', `<span class="render-tag">${el.dataset.tag || 'Візуалізація'}</span>`);
+    if (el.classList.contains('g-item')) el.insertAdjacentHTML('beforeend', `<span class="g-cap">${el.dataset.cap}</span>`);
+  });
+
+  // рендер першого екрана: на Cloudflare його вставляє збірка, локально — цей код
+  const hero = document.getElementById('top');
+  if (!document.getElementById('heroPhoto') && (IMAGES['hero/hero-desktop'] || IMAGES['hero/hero-mobile'])) {
+    const desk = IMAGES['hero/hero-desktop'] ? 'hero/hero-desktop' : 'hero/hero-mobile';
+    const mob = IMAGES['hero/hero-mobile'] ? 'hero/hero-mobile' : desk;
+    const set = (k, f) => IMAGES[k].w.map(w => `images/${k}-${w}.${f} ${w}w`).join(', ');
+    let html = '<picture class="hero-photo" id="heroPhoto">';
+    if (desk !== mob) IMAGES[desk].f.forEach(f => { html += `<source media="(min-width: 900px)" type="image/${f}" srcset="${set(desk, f)}" sizes="100vw">`; });
+    IMAGES[mob].f.forEach(f => { html += `<source type="image/${f}" srcset="${set(mob, f)}" sizes="100vw">`; });
+    const fb = IMAGES[desk].f[IMAGES[desk].f.length - 1];
+    html += `<img src="images/${desk}-${IMAGES[desk].w[IMAGES[desk].w.length - 1]}.${fb}" alt="Візуалізація: будинки Krona Hills серед сосон" fetchpriority="high" decoding="async"></picture><span class="render-tag hero-tag">Візуалізація</span>`;
+    document.getElementById('scene').insertAdjacentHTML('afterend', html);
+  }
+  if (document.getElementById('heroPhoto')) hero.classList.add('has-photo');
+})();
+
+/* ---------------------------------------------------------
+   Фото з майданчика: вкладки місяців
+   --------------------------------------------------------- */
+(() => {
+  const tabs = [...document.querySelectorAll('.pp-tabs [role="tab"]')];
+  const select = tab => {
+    tabs.forEach(t => {
+      const on = t === tab;
+      t.setAttribute('aria-selected', on);
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+  };
+  tabs.forEach((t, i) => {
+    t.tabIndex = i === 0 ? 0 : -1;
+    t.addEventListener('click', () => select(t));
+    t.addEventListener('keydown', e => {
+      const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!step) return;
+      e.preventDefault();
+      const next = tabs[(i + step + tabs.length) % tabs.length];
+      select(next); next.focus();
+    });
+  });
+})();
+
+/* ---------------------------------------------------------
+   Лайтбокс: свайп на телефоні, стрілки на клавіатурі, Esc
+   --------------------------------------------------------- */
+(() => {
+  const lb = document.getElementById('lightbox');
+  const media = document.getElementById('lbMedia');
+  const cap = document.getElementById('lbCap');
+  const count = document.getElementById('lbCount');
+  let items = [], index = 0, opener = null;
+
+  const ratio = el => {
+    const [a, b] = (el.style.getPropertyValue('--ar') || '3/2').split('/').map(Number);
+    return a / b || 1.5;
+  };
+
+  function show(i) {
+    index = (i + items.length) % items.length;
+    const src = items[index];
+    Object.assign(media.dataset, { img: src.dataset.img, alt: src.dataset.alt, cap: src.dataset.cap, kind: src.dataset.kind || '' });
+    media.style.setProperty('--ar', src.style.getPropertyValue('--ar'));
+    media.style.setProperty('--arn', ratio(src));
+    lb.querySelector('.lb-cap').style.setProperty('--arn', ratio(src));
+    fillMedia(media, '100vw');
+    cap.textContent = src.dataset.cap;
+    count.textContent = `${index + 1} / ${items.length}`;
+    lb.querySelectorAll('.lb-nav').forEach(b => { b.hidden = items.length < 2; });
+  }
+
+  document.addEventListener('click', e => {
+    const item = e.target.closest('[data-lb] .media');
+    if (!item) return;
+    items = [...item.closest('[data-lb]').querySelectorAll('.media')];
+    opener = item;
+    show(items.indexOf(item));
+    lb.showModal();
+  });
+  lb.addEventListener('click', e => {
+    if (e.target.closest('[data-lb-close]') || e.target === lb) lb.close();
+    const step = e.target.closest('[data-lb-step]');
+    if (step) show(index + +step.dataset.lbStep);
+  });
+  lb.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') show(index + 1);
+    if (e.key === 'ArrowLeft') show(index - 1);
+  });
+  lb.addEventListener('close', () => opener?.focus({ preventScroll: true }));
+
+  // свайп
+  let x0 = null, y0 = 0;
+  media.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; });
+  media.addEventListener('pointerup', e => {
+    if (x0 === null) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) show(index + (dx < 0 ? 1 : -1));
+    x0 = null;
+  });
+  media.addEventListener('pointercancel', () => { x0 = null; });
 })();
