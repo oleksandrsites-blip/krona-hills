@@ -24,15 +24,37 @@ const nav = document.getElementById('nav');
 const burger = document.getElementById('burger');
 const mobileMenu = document.getElementById('mobileMenu');
 
+// поки меню відкрите, решта сторінки «вимкнена» (inert): фокус не тікає за меню
+const behindMenu = [document.querySelector('main'), document.querySelector('footer'), ...nav.querySelectorAll('.logo, .menu, .nav-right')];
+
 function setMenu(open) {
+  const wasOpen = document.body.classList.contains('menu-open');
+  if (open === wasOpen) return;
+  document.documentElement.classList.toggle('menu-open', open);
   document.body.classList.toggle('menu-open', open);
   burger.setAttribute('aria-expanded', open);
   burger.setAttribute('aria-label', open ? 'Закрити меню' : 'Відкрити меню');
   mobileMenu.setAttribute('aria-hidden', !open);
+  mobileMenu.inert = !open;
+  behindMenu.forEach(el => { el.inert = open; });
+  if (open) mobileMenu.querySelector('a').focus({ preventScroll: true });
+  else burger.focus({ preventScroll: true });
 }
+mobileMenu.inert = true;
 burger.addEventListener('click', () => setMenu(!document.body.classList.contains('menu-open')));
 mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
-addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
+addEventListener('keydown', e => {
+  if (e.key === 'Escape') setMenu(false);
+  // Tab по колу: меню ↔ кнопка закриття
+  if (e.key === 'Tab' && document.body.classList.contains('menu-open')) {
+    const items = [burger, ...mobileMenu.querySelectorAll('a')];
+    const i = items.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); items[items.length - 1].focus(); }
+    else if (!e.shiftKey && i === items.length - 1) { e.preventDefault(); items[0].focus(); }
+  }
+});
+// на широкому екрані меню не потрібне — закриваємо, якщо повернули телефон чи розтягнули вікно
+matchMedia('(min-width: 1100px)').addEventListener('change', e => { if (e.matches) setMenu(false); });
 
 /* ---------------------------------------------------------
    1. Нічна сцена: пагорби, сосни, будинки з вікнами
@@ -263,7 +285,6 @@ onScroll();
   const tip = document.getElementById('mapTip');
   const frame = svg.parentElement;
   const rand = seeded(2027);
-  if (matchMedia('(hover: none)').matches) frame.querySelector('.map-hint').textContent = 'Торкніться будинку';
 
   const boundary = [[40, 90], [150, 30], [330, 20], [500, 40], [600, 110], [620, 260], [590, 420], [520, 520], [330, 548], [150, 530], [50, 440], [20, 280]];
   const houses = [
