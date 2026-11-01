@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>lead test</title>
+<pre id="out">running…</pre>
+<script type="module">
+// Тест functions/api/lead.js без Cloudflare: підміняємо fetch до Telegram
+import { onRequestPost } from '../functions/api/lead.js';
+
+const calls = [];
+const realFetch = window.fetch;
+let tgStatus = 200;
+window.fetch = async (url, opts) => {
+  calls.push({ url, body: JSON.parse(opts.body) });
+  return new Response('{"ok":true}', { status: tgStatus });
+};
+const env = { TELEGRAM_BOT_TOKEN: '123:TEST', TELEGRAM_CHAT_ID: '-100500' };
+const req = body => new Request('https://x/api/lead', { method: 'POST', headers: { 'content-type': 'application/json' }, body: typeof body === 'string' ? body : JSON.stringify(body) });
+const run = async (name, body, e = env) => {
+  const before = calls.length;
+  const res = await onRequestPost({ request: req(body), env: e });
+  return { name, status: res.status, body: await res.json(), telegramCalls: calls.length - before };
+};
+
+const valid = { form: 'visit', name: 'Олена <b>', phone: '+380 (67) 123 45 67', apartment: '2k-64 · 2 кімнати, 64 м²', date: '3 листопада', time: '13:00', pickup: true, page: 'https://krona-hills.pages.dev/?apt=2k-64', company: '' };
+const results = [];
+results.push(await run('валідна заявка', valid));
+results.push(await run('honeypot', { ...valid, company: 'spam' }));
+results.push(await run('поганий телефон', { ...valid, phone: '12345' }));
+results.push(await run('коротке ім’я', { ...valid, name: 'О' }));
+results.push(await run('битий JSON', '{oops'));
+results.push(await run('без змінних', valid, {}));
+tgStatus = 500;
+results.push(await run('Telegram недоступний', { ...valid, form: 'callback' }));
+window.fetch = realFetch;
+
+const sent = calls[0];
+document.getElementById('out').textContent = JSON.stringify({ results, firstMessage: sent.body.text, url: sent.url, chat: sent.body.chat_id, mode: sent.body.parse_mode }, null, 2);
+window.__done = true;
+</script>

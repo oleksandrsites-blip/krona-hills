@@ -717,31 +717,44 @@ function planSVG(f, withLabels) {
 })();
 
 /* ---------------------------------------------------------
-   6. Калькулятор: розстрочка або іпотека
+   6. Калькулятор: розстрочка 0% або іпотека (ануїтет)
    --------------------------------------------------------- */
 (() => {
   const $ = id => document.getElementById(id);
   const inPrice = $('inPrice'), inDown = $('inDown'), inTerm = $('inTerm');
   const planBtns = document.querySelectorAll('#calc .seg button');
+  const PLANS_CALC = {
+    // розстрочка: внесок 30–90%, строк 6–24 міс. (до здачі будинку)
+    installment: { down: [30, 90], term: [6, 24], termDefault: 14 },
+    // іпотека: внесок 20–90%, строк 5–20 років, 7% річних
+    mortgage: { down: [20, 90], term: [5, 20], termDefault: 15, rate: .07 },
+  };
   let plan = 'installment';
 
+  const clamp = (v, [lo, hi]) => Math.min(hi, Math.max(lo, v));
   const fill = input => input.style.setProperty('--p', `${(input.value - input.min) / (input.max - input.min) * 100}%`);
 
   function update() {
-    const price = +inPrice.value, down = price * inDown.value / 100, loan = price - down;
+    const cfg = PLANS_CALC[plan];
+    const price = +inPrice.value;
+    const downPct = clamp(+inDown.value, cfg.down);
+    const term = clamp(+inTerm.value, cfg.term);
+    const down = price * downPct / 100, loan = price - down;
     let monthly, sub;
     if (plan === 'installment') {
-      monthly = loan / inTerm.value;
-      $('outTerm').textContent = `${inTerm.value} міс.`;
+      monthly = loan / term;
+      $('outTerm').textContent = `${term} міс.`;
       sub = 'Переплата: <b>0 грн</b>';
     } else {
-      const r = .07 / 12, n = inTerm.value * 12;
+      // ануїтет: A = S · r / (1 − (1 + r)^−n)
+      const r = cfg.rate / 12, n = term * 12;
       monthly = loan * r / (1 - Math.pow(1 + r, -n));
-      $('outTerm').textContent = `${inTerm.value} р.`;
-      sub = `Ставка <b>7% річних</b> · кредит ${millions(loan)}`;
+      const overpay = monthly * n - loan;
+      $('outTerm').textContent = `${term} р.`;
+      sub = `Переплата: <b>${money(overpay)}</b> · ${NUM.format(cfg.rate * 100)}% річних · кредит ${millions(loan)}`;
     }
     $('outPrice').textContent = millions(price);
-    $('outDown').textContent = `${inDown.value}% · ${money(down)}`;
+    $('outDown').textContent = `${downPct}% · ${money(down)}`;
     $('outMonthly').textContent = money(monthly);
     $('outSub').innerHTML = sub;
     [inPrice, inDown, inTerm].forEach(fill);
@@ -749,19 +762,19 @@ function planSVG(f, withLabels) {
 
   planBtns.forEach(btn => btn.addEventListener('click', () => {
     plan = btn.dataset.plan;
+    const cfg = PLANS_CALC[plan];
     planBtns.forEach(b => b.setAttribute('aria-pressed', b === btn));
-    if (plan === 'installment') {
-      Object.assign(inDown, { min: 30 }); Object.assign(inTerm, { min: 6, max: 24, value: 14 });
-    } else {
-      Object.assign(inDown, { min: 20 }); Object.assign(inTerm, { min: 5, max: 20, value: 15 });
-    }
+    inDown.min = cfg.down[0]; inDown.max = cfg.down[1];
+    inDown.value = clamp(+inDown.value, cfg.down);
+    inTerm.min = cfg.term[0]; inTerm.max = cfg.term[1];
+    inTerm.value = cfg.termDefault;
     update();
   }));
   [inPrice, inDown, inTerm].forEach(i => i.addEventListener('input', update));
 
   // викликається з вікна квартири: підставити її ціну
   window.setCalcPrice = price => {
-    inPrice.value = price;
+    inPrice.value = clamp(price, [+inPrice.min, +inPrice.max]);
     update();
     document.getElementById('terms').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
   };
@@ -895,109 +908,201 @@ function planSVG(f, withLabels) {
 })();
 
 /* ---------------------------------------------------------
-   9. Форма запису на огляд
-   Дані нікуди не надсилаються: це демо для портфоліо.
-   Для справжнього сайту — підключити відправку в handleSubmit.
+   9. Заявки: «Запис на огляд» і «Передзвоніть мені»
+   Надсилаються на /api/lead (Cloudflare Pages Function) → Telegram
    --------------------------------------------------------- */
+// маска телефону: +380 (XX) XXX XX XX
+function formatPhone(value) {
+  let d = value.replace(/\D/g, '');
+  if (d.startsWith('380')) d = d.slice(3);
+  else if (d.startsWith('0')) d = d.slice(1);
+  d = d.slice(0, 9);
+  let out = '+380';
+  if (d.length) out += ` (${d.slice(0, 2)}`;
+  if (d.length >= 2) out += ')';
+  if (d.length > 2) out += ` ${d.slice(2, 5)}`;
+  if (d.length > 5) out += ` ${d.slice(5, 7)}`;
+  if (d.length > 7) out += ` ${d.slice(7, 9)}`;
+  return { text: out, digits: d.length };
+}
+
+// перевірка імені й телефону; повертає true або перше поле з помилкою
+function checkFields(nameEl, phoneEl) {
+  const okName = nameEl.value.trim().length >= 2;
+  const okPhone = formatPhone(phoneEl.value).digits === 9;
+  nameEl.closest('.input').classList.toggle('invalid', !okName);
+  phoneEl.closest('.input').classList.toggle('invalid', !okPhone);
+  return okName && okPhone ? true : (okName ? phoneEl : nameEl);
+}
+
+function wireFields(nameEl, phoneEl) {
+  phoneEl.addEventListener('focus', () => { if (!phoneEl.value) phoneEl.value = '+380 '; });
+  phoneEl.addEventListener('blur', () => { if (phoneEl.value.trim() === '+380') phoneEl.value = ''; });
+  phoneEl.addEventListener('input', () => {
+    phoneEl.value = formatPhone(phoneEl.value).text;
+    if (phoneEl.closest('.input').classList.contains('invalid')) checkFields(nameEl, phoneEl);
+  });
+  nameEl.addEventListener('input', () => {
+    if (nameEl.closest('.input').classList.contains('invalid')) checkFields(nameEl, phoneEl);
+  });
+}
+
+async function sendLead(payload) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const res = await fetch('/api/lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, page: location.href }),
+      signal: ctrl.signal,
+    });
+    const data = await res.json().catch(() => ({}));
+    return res.ok && data.ok === true;
+  } catch (e) {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// спільна логіка відправки: блокування кнопки, «Надсилаємо…», помилка з альтернативою
+function handleLeadForm(form, collect, onSuccess) {
+  const btn = form.querySelector('[type="submit"]');
+  const label = btn.textContent;
+  const err = form.querySelector('.form-error');
+  const nameEl = form.elements.name, phoneEl = form.elements.phone;
+  let sending = false;
+  wireFields(nameEl, phoneEl);
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (sending) return;
+    const check = checkFields(nameEl, phoneEl);
+    if (check !== true) { check.focus(); return; }
+
+    sending = true;
+    err.hidden = true;
+    btn.disabled = true;
+    btn.textContent = 'Надсилаємо…';
+    const ok = await sendLead({
+      ...collect(),
+      name: nameEl.value.trim(),
+      phone: phoneEl.value,
+      company: form.elements.company.value, // пастка для ботів
+    });
+    sending = false;
+    btn.disabled = false;
+    btn.textContent = label;
+    if (ok) onSuccess();
+    else { err.hidden = false; err.focus(); }
+  });
+}
+
+// --- запис на огляд ---
 (() => {
   const form = document.getElementById('visitForm');
   const done = document.getElementById('visitDone');
-  const name = document.getElementById('vfName');
-  const phone = document.getElementById('vfPhone');
   const days = document.getElementById('vfDays');
   const times = document.getElementById('vfTimes');
   const flatBox = document.getElementById('vfFlat');
   const flatText = document.getElementById('vfFlatText');
+  const aptInput = document.getElementById('vfApt');
 
-  // найближчі 7 днів, починаючи з завтра
   const wd = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
   const mon = ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру'];
   const monFull = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
-  for (let i = 1; i <= 7; i++) {
-    const d = new Date(); d.setDate(d.getDate() + i);
+  const slotButtons = [...times.querySelectorAll('button')];
+  const LEAD_MIN = 60; // на сьогодні — не раніше ніж за годину
+
+  // слот сьогодні ще доступний?
+  const slotOk = (btn, date) => {
+    const [h, m] = btn.textContent.split(':').map(Number);
+    const at = new Date(date); at.setHours(h, m, 0, 0);
+    return at - Date.now() > LEAD_MIN * 60000;
+  };
+
+  // дні: сьогодні (якщо ще є вільний час) + 7 наступних
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const startOffset = slotButtons.some(b => slotOk(b, today)) ? 0 : 1;
+  for (let i = startOffset; i < startOffset + 7; i++) {
+    const d = new Date(today); d.setDate(d.getDate() + i);
     const b = document.createElement('button');
     b.type = 'button';
-    b.setAttribute('aria-pressed', i === 1);
+    b.setAttribute('aria-pressed', i === startOffset);
+    b.dataset.date = d.toISOString();
     b.dataset.label = `${d.getDate()} ${monFull[d.getMonth()]}`;
-    b.innerHTML = `<small>${i === 1 ? 'Завтра' : wd[d.getDay()]}</small>${d.getDate()} ${mon[d.getMonth()]}`;
+    const tag = i === 0 ? 'Сьогодні' : i === 1 ? 'Завтра' : wd[d.getDay()];
+    b.innerHTML = `<small>${tag}</small>${d.getDate()} ${mon[d.getMonth()]}`;
     days.appendChild(b);
   }
 
-  // вибір одного варіанта в ряду
+  // на сьогодні минулий час недоступний
+  function refreshSlots() {
+    const day = days.querySelector('[aria-pressed="true"]');
+    const isToday = new Date(day.dataset.date).getTime() === today.getTime();
+    slotButtons.forEach(b => { b.disabled = isToday && !slotOk(b, today); });
+    const chosen = times.querySelector('[aria-pressed="true"]');
+    if (!chosen || chosen.disabled) {
+      const first = slotButtons.find(b => !b.disabled);
+      slotButtons.forEach(b => b.setAttribute('aria-pressed', b === first));
+    }
+  }
+
   [days, times].forEach(row => row.addEventListener('click', e => {
     const b = e.target.closest('button');
-    if (!b) return;
+    if (!b || b.disabled) return;
     row.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    if (row === days) refreshSlots();
   }));
+  refreshSlots();
 
-  // маска телефону: +380 (XX) XXX XX XX
-  function formatPhone(value) {
-    let d = value.replace(/\D/g, '');
-    if (d.startsWith('380')) d = d.slice(3);
-    else if (d.startsWith('0')) d = d.slice(1);
-    d = d.slice(0, 9);
-    let out = '+380';
-    if (d.length) out += ` (${d.slice(0, 2)}`;
-    if (d.length >= 2) out += ')';
-    if (d.length > 2) out += ` ${d.slice(2, 5)}`;
-    if (d.length > 5) out += ` ${d.slice(5, 7)}`;
-    if (d.length > 7) out += ` ${d.slice(7, 9)}`;
-    return { text: out, digits: d.length };
-  }
-  phone.addEventListener('focus', () => { if (!phone.value) phone.value = '+380 '; });
-  phone.addEventListener('blur', () => { if (phone.value.trim() === '+380') phone.value = ''; });
-  phone.addEventListener('input', () => {
-    phone.value = formatPhone(phone.value).text;
-    if (phone.parentElement.classList.contains('invalid')) validate();
+  const chosen = () => ({
+    day: days.querySelector('[aria-pressed="true"]').dataset.label,
+    time: times.querySelector('[aria-pressed="true"]').textContent,
   });
-  name.addEventListener('input', () => { if (name.parentElement.classList.contains('invalid')) validate(); });
 
-  function validate() {
-    const okName = name.value.trim().length >= 2;
-    const okPhone = formatPhone(phone.value).digits === 9;
-    name.parentElement.classList.toggle('invalid', !okName);
-    phone.parentElement.classList.toggle('invalid', !okPhone);
-    return okName && okPhone ? true : (okName ? phone : name);
-  }
-
-  form.addEventListener('submit', e => {
-    e.preventDefault();
-    const result = validate();
-    if (result !== true) { result.focus(); return; }
-
-    const btn = form.querySelector('.vf-submit');
-    btn.disabled = true;
-    btn.textContent = 'Надсилаємо…';
-
-    setTimeout(() => {
-      const day = days.querySelector('[aria-pressed="true"]').dataset.label;
-      const time = times.querySelector('[aria-pressed="true"]').textContent;
-      const pickup = document.getElementById('vfPickup').checked ? ' Зустрінемо вас біля метро.' : '';
-      document.getElementById('vdTitle').textContent = 'Дякуємо, заявку прийнято!';
-      document.getElementById('vdText').textContent =
-        `Чекаємо вас ${day} о ${time}.${pickup} Менеджер зателефонує протягом 15 хвилин, щоб підтвердити.`;
-      form.hidden = true;
-      done.hidden = false;
-      done.focus();
-      btn.disabled = false;
-      btn.textContent = 'Записатися на огляд';
-    }, 700);
+  handleLeadForm(form, () => ({
+    form: 'visit',
+    apartment: aptInput.value,
+    date: chosen().day,
+    time: chosen().time,
+    pickup: document.getElementById('vfPickup').checked,
+  }), () => {
+    const { day, time } = chosen();
+    const pickup = document.getElementById('vfPickup').checked ? ' Зустрінемо вас біля метро.' : '';
+    document.getElementById('vdTitle').textContent = 'Дякуємо, заявку прийнято!';
+    document.getElementById('vdText').textContent =
+      `Чекаємо вас ${day} о ${time}.${pickup} Менеджер зателефонує протягом 15 хвилин, щоб підтвердити.`;
+    form.hidden = true;
+    done.hidden = false;
+    done.focus();
   });
 
   document.getElementById('vdAgain').addEventListener('click', () => {
     done.hidden = true;
     form.hidden = false;
-    name.focus();
+    form.elements.name.focus();
   });
 
   // квартира з вікна квартири
-  const aptInput = document.getElementById('vfApt');
   window.setVisitFlat = (text, id) => {
     flatText.textContent = text;
     aptInput.value = id ? `${id} · ${text}` : text;
     flatBox.hidden = false;
   };
   document.getElementById('vfFlatClear').addEventListener('click', () => { flatBox.hidden = true; aptInput.value = ''; });
+})();
+
+// --- «Передзвоніть мені» ---
+(() => {
+  const form = document.getElementById('cbForm');
+  const done = document.getElementById('cbDone');
+  handleLeadForm(form, () => ({ form: 'callback' }), () => {
+    form.hidden = true;
+    done.hidden = false;
+    done.focus();
+  });
 })();
 
 /* ---------------------------------------------------------

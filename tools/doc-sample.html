@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>Зразок документа</title>
+<!-- Шаблон PDF-заглушок для docs/. Генерується командою з tools/make-docs.sh -->
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 210mm; height: 297mm; }
+  body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; color: #1A1E1B; background: #fff; position: relative; overflow: hidden; }
+  .page { padding: 22mm 20mm; height: 100%; display: flex; flex-direction: column; }
+  .top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #D9D4C8; padding-bottom: 8mm; }
+  .logo { display: flex; align-items: center; gap: 3mm; font-size: 11pt; letter-spacing: .32em; }
+  .logo svg { width: 8mm; height: 8mm; }
+  .no { font-size: 9pt; color: #6B7068; letter-spacing: .08em; }
+  h1 { font-size: 24pt; font-weight: 400; margin: 18mm 0 6mm; letter-spacing: -.01em; }
+  .sub { font-size: 11pt; color: #6B7068; margin-bottom: 14mm; }
+  .rows div { display: flex; justify-content: space-between; border-bottom: 1px dashed #D9D4C8; padding: 3.2mm 0; font-size: 10.5pt; }
+  .rows span:first-child { color: #6B7068; }
+  .note { margin-top: auto; font-size: 9.5pt; line-height: 1.55; color: #6B7068; border-top: 1px solid #D9D4C8; padding-top: 6mm; }
+  .stamp {
+    position: absolute; left: 50%; top: 52%; transform: translate(-50%, -50%) rotate(-24deg);
+    border: 3px solid rgba(176, 140, 72, .55); color: rgba(176, 140, 72, .55);
+    padding: 6mm 12mm; font-size: 30pt; letter-spacing: .12em; white-space: nowrap; text-align: center; line-height: 1.25;
+  }
+  .stamp small { display: block; font-size: 13pt; letter-spacing: .2em; }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="top">
+      <div class="logo">
+        <svg viewBox="0 0 22 22" fill="none" stroke="#1A1E1B" stroke-width="1.2"><path d="M11 2 5 10h3l-4 6h14l-4-6h3z"/><path d="M11 16v4"/></svg>
+        KRONA HILLS
+      </div>
+      <div class="no" id="no"></div>
+    </div>
+    <h1 id="title"></h1>
+    <p class="sub">Житловий квартал Krona Hills · Київська область</p>
+    <div class="rows" id="rows"></div>
+    <p class="note">Це зразок для концепт-проєкту в портфоліо. Компанія, ціни й дані вигадані, документ не має юридичної сили.
+      На справжньому сайті тут буде скан оригінального документа.</p>
+  </div>
+  <div class="stamp">ЗРАЗОК<small>концепт-проєкт</small></div>
+<script>
+  const DOCS = {
+    dozvil: { title: 'Дозвіл на виконання будівельних робіт', no: '№ ІУ 000000000000 · ЗРАЗОК',
+      rows: [['Об’єкт', 'Житловий квартал, 4 будинки, 7 поверхів'], ['Клас наслідків', 'СС2'], ['Дата видачі', 'березень 2025'], ['Орган', '—']] },
+    pravo: { title: 'Витяг про право власності на земельну ділянку', no: '№ 000000000 · ЗРАЗОК',
+      rows: [['Площа ділянки', '3,2 га'], ['Цільове призначення', 'для будівництва багатоквартирних житлових будинків'], ['Власник', '—'], ['Кадастровий номер', '0000000000:00:000:0000']] },
+    deklaratsiia: { title: 'Проєктна декларація', no: 'Редакція 1 · ЗРАЗОК',
+      rows: [['Кількість квартир', '214'], ['Черги', '1 черга — грудень 2027, 2 черга — вересень 2028'], ['Площі квартир', 'від 42 до 118 м²'], ['Паркінг', 'підземний, 260 місць']] },
+  };
+  const d = DOCS[new URLSearchParams(location.search).get('doc')] || DOCS.dozvil;
+  document.getElementById('title').textContent = d.title;
+  document.getElementById('no').textContent = d.no;
+  document.getElementById('rows').innerHTML = d.rows.map(([k, v]) => `<div><span>${k}</span><span>${v}</span></div>`).join('');
+</script>
+</body>
+</html>
