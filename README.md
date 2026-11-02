@@ -42,7 +42,7 @@ tools/                    збірка й допоміжні скрипти
 
 Файли кладуться в `images/<розділ>/` за схемою `<назва>-<ширина>.<формат>`, напр. `images/gallery/01-fasady-1600.webp`. Поки файлу немає, на сайті показується акуратна заглушка; щойно файл з'являється — він підхоплюється сам.
 
-Найпростіше: покласти оригінали (JPG/PNG) в `images/_src/<розділ>/<назва>.jpg` і запустити `bash tools/images.sh` — він наріже потрібні розміри у WebP/AVIF (потрібні `brew install webp libavif`).
+Найпростіше: покласти оригінали (JPG/PNG) в `images/_src/<розділ>/<назва>.jpg` і запустити `bash tools/images.sh` — він наріже потрібні розміри в AVIF, WebP і JPG (потрібен `pip3 install pillow`). Оригінали в git не потрапляють.
 
 ## Локальний перегляд
 
@@ -57,7 +57,7 @@ python3 tools/cf_build.py --manifest && python3 -m http.server 8000
 | Скрипт | Що робить |
 |---|---|
 | `cf-build.sh` / `cf_build.py` | збірка для Cloudflare Pages |
-| `images.sh` | нарізка оригіналів з `images/_src/` у AVIF + JPG (і WebP, якщо є `cwebp`) |
+| `images.sh` / `images.py` | нарізка оригіналів з `images/_src/` у AVIF, WebP і JPG |
 | `fonts.py` | завантажує шрифти з Google Fonts у `fonts/` (self-host) |
 | `make-og.sh` | перегенерує `og/og-cover.png` (1200×630); якщо є рендер — він стає фоном |
 | `make-docs.sh` | перегенерує PDF-зразки документів у `docs/` |

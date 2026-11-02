@@ -157,7 +157,7 @@ const scene = (() => {
   lit.sort(() => rand() - .5).forEach((w, i) => {
     setTimeout(() => w.setAttribute('opacity', .9), reduceMotion ? 0 : 900 + i * 55);
   });
-  if (!reduceMotion) {
+  if (!reduceMotion && !document.getElementById('heroPhoto')) {
     let heroOn = true;
     new IntersectionObserver(([e]) => { heroOn = e.isIntersecting; }).observe(hero);
     setInterval(() => {
