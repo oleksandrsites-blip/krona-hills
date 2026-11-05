@@ -175,7 +175,7 @@ html.menu-open, .menu-open { overflow: hidden; overscroll-behavior: none; }
 .hero-photo::after {
   content: ''; position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse 60% 38% at 50% 48%, rgba(10,13,11,.5), rgba(10,13,11,0)),
+    radial-gradient(ellipse 66% 44% at 50% 52%, rgba(10,13,11,.66), rgba(10,13,11,0)),
     linear-gradient(180deg, rgba(10,13,11,.78) 0%, rgba(10,13,11,.35) 35%, rgba(10,13,11,.45) 60%, rgba(13,16,14,.95) 100%);
 }
 /* з рендером намальовані пагорби не потрібні — лишається тільки передній, за який ховається текст */
@@ -222,6 +222,8 @@ html.menu-open, .menu-open { overflow: hidden; overscroll-behavior: none; }
 .hero-ctas { display: flex; flex-direction: column; gap: 10px; align-items: center; }
 .hero-note { margin-top: 16px; font-size: 13px; color: var(--muted); }
 .hero-sub, .hero-note, .hero-meta { text-shadow: 0 1px 14px rgba(5, 7, 6, .9), 0 0 2px rgba(5, 7, 6, .8); }
+/* на фото сірий тексту не вистачає контрасту — світлішаємо */
+.hero.has-photo .hero-sub, .hero.has-photo .hero-note, .hero.has-photo .hero-meta { color: rgba(230, 223, 210, .88); }
 .hero-ctas .btn { width: 100%; max-width: 320px; }
 
 .hero-meta {
