@@ -1163,6 +1163,7 @@ input[type="range"]:focus-visible { outline: 1px solid var(--gold); outline-offs
   font: 400 11px/1.5 var(--f-mono); letter-spacing: .04em; color: var(--muted);
 }
 .footer-bottom a:hover { color: var(--gold); }
+.footer-bottom .dev a { color: var(--bone); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line); }
 
 @media (min-width: 900px) {
   .footer { padding: 72px 0 28px; }
