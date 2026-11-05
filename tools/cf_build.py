@@ -93,8 +93,7 @@ def hero_markup(images):
     fallback = main['f'][-1]
     img = (f'<img src="images/{main_key}-{main["w"][-1]}.{fallback}" alt="{HERO_ALT}" '
            f'fetchpriority="high" decoding="async">')
-    picture = (f'<picture class="hero-photo" id="heroPhoto">{"".join(sources)}{img}</picture>'
-               '<span class="render-tag hero-tag">Візуалізація</span>')
+    picture = f'<picture class="hero-photo" id="heroPhoto">{"".join(sources)}{img}</picture>'
     return '\n  '.join(preloads), picture
 
 

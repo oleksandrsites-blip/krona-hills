@@ -968,7 +968,12 @@ function wireFields(nameEl, phoneEl) {
   });
 }
 
+// демо-режим: заявки нікуди не надсилаються, форма одразу показує успіх.
+// Щоб увімкнути відправку в Telegram — DEMO_LEADS = false і змінні в Cloudflare (див. README)
+const DEMO_LEADS = true;
+
 async function sendLead(payload) {
+  if (DEMO_LEADS) return new Promise(r => setTimeout(() => r(true), 700));
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12000);
   try {
@@ -1202,7 +1207,7 @@ function fillMedia(el, sizes) {
     const group = el.closest('[data-lb]').dataset.lb.split('-')[0];
     fillMedia(el, SIZES[group] || '100vw');
     el.setAttribute('aria-label', `${el.dataset.cap} — відкрити на весь екран`);
-    el.insertAdjacentHTML('beforeend', `<span class="render-tag">${el.dataset.tag || 'Візуалізація'}</span>`);
+    if (el.dataset.tag) el.insertAdjacentHTML('beforeend', `<span class="render-tag">${el.dataset.tag}</span>`);
     if (el.classList.contains('g-item')) el.insertAdjacentHTML('beforeend', `<span class="g-cap">${el.dataset.cap}</span>`);
   });
 
@@ -1216,7 +1221,7 @@ function fillMedia(el, sizes) {
     if (desk !== mob) IMAGES[desk].f.forEach(f => { html += `<source media="(min-width: 900px)" type="image/${f}" srcset="${set(desk, f)}" sizes="100vw">`; });
     IMAGES[mob].f.forEach(f => { html += `<source type="image/${f}" srcset="${set(mob, f)}" sizes="100vw">`; });
     const fb = IMAGES[desk].f[IMAGES[desk].f.length - 1];
-    html += `<img src="images/${desk}-${IMAGES[desk].w[IMAGES[desk].w.length - 1]}.${fb}" alt="Візуалізація: будинки Krona Hills серед сосон" fetchpriority="high" decoding="async"></picture><span class="render-tag hero-tag">Візуалізація</span>`;
+    html += `<img src="images/${desk}-${IMAGES[desk].w[IMAGES[desk].w.length - 1]}.${fb}" alt="Візуалізація: будинки Krona Hills серед сосон" fetchpriority="high" decoding="async"></picture>`;
     document.getElementById('scene').insertAdjacentHTML('afterend', html);
   }
   if (document.getElementById('heroPhoto')) hero.classList.add('has-photo');
